@@ -62,19 +62,61 @@ class ConfigManager:
             return default_config
 
         try:
-            with open(self.config_path, 'r') as file:
-                data = json.load(file)
-                # Ensure cookies is a list (backward compatibility if it was string)
-                if isinstance(data.get("cookie"), str):
-                    if data["cookie"]:
-                        data["cookie"] = [data["cookie"]]
-                    else:
-                        data["cookie"] = []
-                # Merge with default config to ensure all keys exist
-                for key, value in default_config.items():
-                    if key not in data:
-                        data[key] = value
-                return data
+            # First try loading from file
+            file_data = {}
+            if os.path.exists(self.config_path):
+                with open(self.config_path, 'r') as file:
+                    file_data = json.load(file)
+
+            # Check for environment variables (override/fill defaults)
+            # Mappings: Env Var -> Config Key
+            env_map = {
+                "ClassID": "class",
+                "X": "lat",
+                "Y": "lng",
+                "ACC": "acc",
+                "SearchTime": "scheduletime",
+                "token": "pushplus",
+                # "MyCookie" handled specially below
+            }
+
+            env_data = {}
+            for env_key, config_key in env_map.items():
+                if os.environ.get(env_key):
+                    env_data[config_key] = os.environ.get(env_key)
+
+            if os.environ.get("MyCookie"):
+                # workflow might pass single string or list-like string?
+                # Assuming single string or list; we treat it as adding to list
+                c = os.environ.get("MyCookie")
+                if c:
+                    env_data["cookie"] = [c]
+
+            # Determine final data source priority: Env > File > Default
+            # However, if config.json exists and has valid data, usually we prefer that?
+            # But the use case here is GitHub Actions injecting secrets.
+            # If Env vars are present, they should likely take precedence or at least fill in gaps.
+            # Given the workflow runs on fresh VM, config.json won't exist anyway.
+            # So mixing them safely:
+
+            data = default_config.copy()
+            data.update(file_data) # Load from file
+            data.update(env_data)  # Override with Env
+
+            # Ensure cookies is a list
+            if isinstance(data.get("cookie"), str):
+                if data["cookie"]:
+                    data["cookie"] = [data["cookie"]]
+                else:
+                    data["cookie"] = []
+
+            # If we have critical data from Env, we should consider it "locked" to avoid interactive prompt in main.py
+            # Critical fields: class
+            if env_data.get("class"):
+                data["configLock"] = True
+
+            return data
+
         except Exception as e:
             print(f"Error loading config: {e}")
             return default_config

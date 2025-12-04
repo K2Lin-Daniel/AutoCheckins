@@ -16,8 +16,8 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3        
       - name: Set up env
-        run: pip install requests
-             pip install beautifulsoup4
+        run: |
+             pip install requests beautifulsoup4 schedule
        # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi 
       - name: Checkin
         run: |
