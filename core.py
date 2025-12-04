@@ -192,9 +192,11 @@ class ConfigManager:
                 cookies = config.get("cookie", [])
                 class_id = config.get("class")
                 if cookies and class_id:
-                    # 创建默认地点
-                    def_loc_name = "Default Location"
-                    if not config["locations"]:
+                    # 确定默认地点
+                    if config["locations"]:
+                        def_loc_name = config["locations"][0]["name"]
+                    else:
+                        def_loc_name = "Default Location"
                         config["locations"].append({
                             "name": def_loc_name,
                             "lat": config.get("lat", "0.0"),
