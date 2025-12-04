@@ -100,6 +100,7 @@ class ConfigManager:
         # Check existence before saving for logging purposes
         is_new = not os.path.exists(self.config_path)
         self.save_config(self.data)
+        logger.info(f"Configuration loaded from: {self.config_path}")
         if is_new:
             logger.info(f"Initialized default configuration at {self.config_path}")
 

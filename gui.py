@@ -305,22 +305,25 @@ class AutoCheckApp:
         self.build_dashboard()
 
     def on_nav_change(self, e):
-        idx = e.control.selected_index
+        self.navigate_to(e.control.selected_index)
+
+    def navigate_to(self, index):
+        self.rail.selected_index = index
         self.content_area.controls.clear()
 
-        if idx == 0:
+        if index == 0:
             self.build_dashboard()
-        elif idx == 1:
+        elif index == 1:
             self.build_tasks()
-        elif idx == 2:
+        elif index == 2:
             self.build_accounts()
-        elif idx == 3:
+        elif index == 3:
             self.build_locations()
-        elif idx == 4:
+        elif index == 4:
             self.build_settings()
-        elif idx == 5:
+        elif index == 5:
             self.build_logs()
-        elif idx == 6:
+        elif index == 6:
             self.build_guide()
 
         self.page.update()
@@ -359,8 +362,8 @@ class AutoCheckApp:
                     [
                         ft.Text(self.t("quick_actions"), size=16, weight=ft.FontWeight.W_500),
                         ft.FilledButton(self.t("run_now"), icon=ft.Icons.PLAY_CIRCLE, on_click=self.run_manual_checkin, width=200),
-                        ft.OutlinedButton(self.t("view_logs"), icon=ft.Icons.VISIBILITY, on_click=lambda _: self.rail_select(5), width=200),
-                        ft.OutlinedButton(self.t("help_tutorial"), icon=ft.Icons.HELP, on_click=lambda _: self.show_tutorial_dialog(), width=200)
+                        ft.OutlinedButton(self.t("view_logs"), icon=ft.Icons.VISIBILITY, on_click=lambda _: self.navigate_to(5), width=200),
+                        ft.OutlinedButton(self.t("help_tutorial"), icon=ft.Icons.HELP, on_click=lambda _: self.navigate_to(6), width=200)
                     ],
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER
                 ),
@@ -376,9 +379,7 @@ class AutoCheckApp:
         self.page.update()
 
     def rail_select(self, index):
-        self.rail.selected_index = index
-        self.on_nav_change(ft.ControlEvent(control=self.rail, target="", name="", data=""))
-        self.page.update()
+        self.navigate_to(index)
 
     # --- Tasks ---
     def build_tasks(self):
@@ -456,7 +457,7 @@ class AutoCheckApp:
             title=ft.Text(self.t("add_task")),
             content=ft.Column([dd_acc, dd_loc], tight=True, width=400),
             actions=[
-                ft.TextButton(self.t("cancel"), on_click=lambda e: setattr(dlg, 'open', False) or self.page.update()),
+                ft.TextButton(self.t("cancel"), on_click=lambda e: self.close_dialog(dlg)),
                 ft.FilledButton(self.t("save"), on_click=save)
             ]
         )
@@ -487,7 +488,7 @@ class AutoCheckApp:
             title=ft.Text(self.t("confirm_delete")),
             content=ft.Text(self.t("delete_msg")),
             actions=[
-                ft.TextButton(self.t("cancel"), on_click=lambda e: setattr(dlg, 'open', False) or self.page.update()),
+                ft.TextButton(self.t("cancel"), on_click=lambda e: self.close_dialog(dlg)),
                 ft.FilledButton(self.t("delete"), on_click=confirm, style=ft.ButtonStyle(color=ft.Colors.ERROR))
             ]
         )
@@ -575,7 +576,7 @@ class AutoCheckApp:
             content=ft.Column([tf_name, tf_class, tf_cookie, tf_pwd], tight=True, width=400, scroll=ft.ScrollMode.AUTO),
             actions=[
                 ft.TextButton(self.t("how_to_cookie"), on_click=lambda _: self.show_cookie_help()),
-                ft.TextButton(self.t("cancel"), on_click=lambda e: setattr(dlg, 'open', False) or self.page.update()),
+                ft.TextButton(self.t("cancel"), on_click=lambda e: self.close_dialog(dlg)),
                 ft.FilledButton(self.t("save"), on_click=save)
             ]
         )
@@ -598,7 +599,7 @@ class AutoCheckApp:
             title=ft.Text(self.t("confirm_delete")),
             content=ft.Text(self.t("delete_msg")),
             actions=[
-                ft.TextButton(self.t("cancel"), on_click=lambda e: setattr(dlg, 'open', False) or self.page.update()),
+                ft.TextButton(self.t("cancel"), on_click=lambda e: self.close_dialog(dlg)),
                 ft.FilledButton(self.t("delete"), on_click=confirm, style=ft.ButtonStyle(color=ft.Colors.ERROR))
             ]
         )
@@ -615,10 +616,14 @@ class AutoCheckApp:
                 width=600,
                 height=400,
             ),
-            actions=[ft.TextButton("Close", on_click=lambda e: setattr(dlg, 'open', False) or self.page.update())]
+            actions=[ft.TextButton("Close", on_click=lambda e: self.close_dialog(dlg))]
         )
         self.page.dialog = dlg
         dlg.open = True
+        self.page.update()
+
+    def close_dialog(self, dlg):
+        dlg.open = False
         self.page.update()
 
     # --- Locations ---
@@ -700,7 +705,7 @@ class AutoCheckApp:
             title=ft.Text(self.t("edit_account") if is_edit else self.t("add_location")),
             content=ft.Column([tf_name, tf_lat, tf_lng, tf_acc], tight=True, width=400),
             actions=[
-                ft.TextButton(self.t("cancel"), on_click=lambda e: setattr(dlg, 'open', False) or self.page.update()),
+                ft.TextButton(self.t("cancel"), on_click=lambda e: self.close_dialog(dlg)),
                 ft.FilledButton(self.t("save"), on_click=save)
             ]
         )
@@ -723,7 +728,7 @@ class AutoCheckApp:
             title=ft.Text(self.t("confirm_delete")),
             content=ft.Text(self.t("delete_msg")),
             actions=[
-                ft.TextButton(self.t("cancel"), on_click=lambda e: setattr(dlg, 'open', False) or self.page.update()),
+                ft.TextButton(self.t("cancel"), on_click=lambda e: self.close_dialog(dlg)),
                 ft.FilledButton(self.t("delete"), on_click=confirm, style=ft.ButtonStyle(color=ft.Colors.ERROR))
             ]
         )
@@ -762,6 +767,14 @@ class AutoCheckApp:
         )
 
         sw_debug = ft.Switch(label=self.t("enable_debug"), value=self.config_manager.get("debug", False))
+
+        # Display Config Path
+        tf_config_path = ft.TextField(
+            label="Config Path",
+            value=self.config_manager.config_path,
+            read_only=True,
+            icon=ft.Icons.FILE_PRESENT
+        )
 
         def save(e):
             try:
@@ -817,6 +830,9 @@ class AutoCheckApp:
             ft.Divider(),
             ft.Text("Debug", weight=ft.FontWeight.BOLD),
             sw_debug,
+            ft.Divider(),
+            ft.Text("Configuration File", weight=ft.FontWeight.BOLD),
+            tf_config_path,
             ft.Divider(),
             ft.FilledButton(self.t("save_settings"), on_click=save)
         ])
@@ -987,7 +1003,7 @@ class AutoCheckApp:
         dlg = ft.AlertDialog(
             title=ft.Text(self.t("help_tutorial")),
             content=ft.Column(steps, tight=True, width=500),
-            actions=[ft.FilledButton(self.t("got_it"), on_click=lambda e: setattr(dlg, 'open', False) or self.page.update())]
+            actions=[ft.FilledButton(self.t("got_it"), on_click=lambda e: self.close_dialog(dlg))]
         )
         self.page.dialog = dlg
         dlg.open = True
