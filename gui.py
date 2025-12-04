@@ -17,10 +17,20 @@ This module provides a graphical user interface using the Flet framework
 to manage configuration (accounts, locations, tasks) and monitor check-in status.
 """
 
+# Determine log path based on execution environment (script vs frozen exe)
+if getattr(sys, 'frozen', False):
+    # Running as PyInstaller executable
+    base_dir = os.path.dirname(sys.executable)
+else:
+    # Running as script
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+
+log_path = os.path.join(base_dir, 'gui_debug.log')
+
 # Configure logging to file for debugging GUI startup issues
 # We use force=True because core.py might have already configured logging
 logging.basicConfig(
-    filename='gui_debug.log',
+    filename=log_path,
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     force=True
@@ -745,26 +755,11 @@ def main(page: ft.Page):
 
 if __name__ == "__main__":
     # Crucial for PyInstaller compatibility on Windows
+    # Must be the very first line after check
     multiprocessing.freeze_support()
 
     try:
-        # Check if we are being run as a Flet viewer (child process)
-        # Flet viewer typically receives the server URL as an argument (tcp://... or http://...)
-        is_viewer = False
-        for arg in sys.argv:
-            if "tcp://" in arg or "http://" in arg:
-                is_viewer = True
-                break
-
-        if is_viewer:
-            # If we are the viewer, we delegate to Flet CLI to handle the connection.
-            # This prevents the recursion where ft.app(target=main) starts a new server.
-            import flet.cli
-            flet.cli.main()
-        else:
-            # If we are the main process, we start the server.
-            ft.app(target=main)
-
+        ft.app(target=main)
     except Exception as e:
         with open("fatal_crash.log", "w") as f:
             f.write(traceback.format_exc())
