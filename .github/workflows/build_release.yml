@@ -31,7 +31,7 @@ jobs:
 
     - name: Build GUI (gui.exe)
       run: |
-        pyinstaller --name AutoCheckBJMF_GUI --noconsole --clean gui.py
+        pyinstaller --name AutoCheckBJMF_GUI --onefile --noconsole --clean gui.py
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
