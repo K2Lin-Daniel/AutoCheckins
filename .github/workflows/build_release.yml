@@ -23,15 +23,19 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pyinstaller
+        pip install pyinstaller flet
 
     - name: Build CLI (main.exe)
       run: |
         pyinstaller --name AutoCheckBJMF_CLI --onefile --clean main.py
 
-    - name: Build GUI (gui.exe)
+    - name: Build GUI (flet build)
       run: |
-        pyinstaller --name AutoCheckBJMF_GUI --onefile --noconsole --clean gui.py
+        flet build windows --module-name gui --project-name AutoCheckBJMF_GUI
+
+    - name: Prepare GUI Artifact
+      run: |
+        Compress-Archive -Path build/windows/* -DestinationPath dist/AutoCheckBJMF_GUI_Windows.zip
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
@@ -39,7 +43,7 @@ jobs:
       with:
         files: |
           dist/AutoCheckBJMF_CLI.exe
-          dist/AutoCheckBJMF_GUI.exe
+          dist/AutoCheckBJMF_GUI_Windows.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -48,4 +52,6 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: AutoCheckBJMF-Builds
-        path: dist/*.exe
+        path: |
+          dist/AutoCheckBJMF_CLI.exe
+          dist/AutoCheckBJMF_GUI_Windows.zip
