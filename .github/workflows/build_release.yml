@@ -31,7 +31,7 @@ jobs:
 
     - name: Build GUI (flet build)
       run: |
-        flet build windows --module-name gui --project-name AutoCheckBJMF_GUI
+        flet build windows --module-name gui
 
     - name: Prepare GUI Artifact
       run: |
