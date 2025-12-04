@@ -37,7 +37,7 @@ logger = logging.getLogger("GUI_MODERN")
 
 class AutoCheckApp(ttk.Window):
     def __init__(self):
-        super().__init__(themename="materia", title="AutoCheckBJMF - Class Cube", resizable=(True, True))
+        super().__init__(themename="cosmo", title="AutoCheckBJMF - Class Cube", resizable=(True, True))
         self.geometry("1000x700")
 
         # Initialize Managers
