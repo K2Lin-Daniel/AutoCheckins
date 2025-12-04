@@ -5,6 +5,8 @@ import logging
 import traceback
 import multiprocessing
 import schedule
+import sys
+import os
 from datetime import datetime, timedelta
 from core import ConfigManager, CheckInManager
 
@@ -591,7 +593,23 @@ if __name__ == "__main__":
     multiprocessing.freeze_support()
 
     try:
-        ft.app(target=main)
+        # Check if we are being run as a Flet viewer (child process)
+        # Flet viewer typically receives the server URL as an argument (tcp://... or http://...)
+        is_viewer = False
+        for arg in sys.argv:
+            if "tcp://" in arg or "http://" in arg:
+                is_viewer = True
+                break
+
+        if is_viewer:
+            # If we are the viewer, we delegate to Flet CLI to handle the connection.
+            # This prevents the recursion where ft.app(target=main) starts a new server.
+            import flet.cli
+            flet.cli.main()
+        else:
+            # If we are the main process, we start the server.
+            ft.app(target=main)
+
     except Exception as e:
         with open("fatal_crash.log", "w") as f:
             f.write(traceback.format_exc())
