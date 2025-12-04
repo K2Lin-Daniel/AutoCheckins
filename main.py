@@ -22,9 +22,9 @@ def main():
     print("----------提醒----------")
     print("项目地址：https://github.com/JasonYANG170/AutoCheckBJMF")
     print("请查看教程以获取Cookie和班级ID")
-    print("config.json文件位置：", os.getcwd())
 
     config = ConfigManager()
+    print("config.json文件位置：", config.config_path)
 
     # CLI setup if not locked and no tasks configured
     if not config.get("configLock") and not config.get("tasks"):

@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import logging
 import random
@@ -68,15 +69,33 @@ class ConfigManager:
     Loads configuration from 'config.json' and environment variables, prioritizing environment variables.
     Handles migration from older configuration formats.
     """
-    def __init__(self, config_path="config.json"):
+    def __init__(self, config_path=None):
         """
         Initialize the ConfigManager.
 
         Args:
-            config_path (str): Path to the configuration file. Defaults to "config.json".
+            config_path (str, optional): Path to the configuration file.
+                                         If None, automatically determines path based on execution environment (frozen or script).
         """
-        self.config_path = config_path
+        if config_path:
+            self.config_path = config_path
+        else:
+            # Determine path based on environment
+            if getattr(sys, 'frozen', False):
+                # Running as PyInstaller executable
+                base_dir = os.path.dirname(sys.executable)
+            else:
+                # Running as script
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+
+            self.config_path = os.path.join(base_dir, "config.json")
+
         self.data = self._load_config()
+
+        # Check if config file exists, if not, save defaults
+        if not os.path.exists(self.config_path):
+            self.save_config(self.data)
+            logger.info(f"Initialized default configuration at {self.config_path}")
 
     def _load_config(self):
         """
