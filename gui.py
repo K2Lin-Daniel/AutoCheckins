@@ -204,7 +204,15 @@ class AutoCheckApp:
         self.page.window.width = 1000
         self.page.window.height = 750
         self.page.theme_mode = ft.ThemeMode.LIGHT
-        self.page.theme = ft.Theme(color_scheme_seed=self.theme_color)
+
+        # Load fonts
+        self.page.fonts = {
+            "ZCOOL KuaiLe": "/fonts/ZCOOLKuaiLe-Regular.ttf",
+            "Comfortaa": "/fonts/Comfortaa-VariableFont_wght.ttf"
+        }
+
+        font_family = "ZCOOL KuaiLe" if self.current_lang == "zh" else "Comfortaa"
+        self.page.theme = ft.Theme(color_scheme_seed=self.theme_color, font_family=font_family)
 
         # Initialize CheckInManager with a thread-safe log callback
         self.checkin_manager = CheckInManager(self.config_manager, log_callback=self.log_callback)
@@ -779,10 +787,13 @@ class AutoCheckApp:
 
             # Apply Changes
             self.theme_color = dd_color.value
-            self.page.theme = ft.Theme(color_scheme_seed=self.theme_color)
+            new_lang = dd_lang.value
 
-            if self.current_lang != dd_lang.value:
-                self.current_lang = dd_lang.value
+            font_family = "ZCOOL KuaiLe" if new_lang == "zh" else "Comfortaa"
+            self.page.theme = ft.Theme(color_scheme_seed=self.theme_color, font_family=font_family)
+
+            if self.current_lang != new_lang:
+                self.current_lang = new_lang
                 self.reload_ui()
             else:
                 self.page.update()
@@ -1009,7 +1020,7 @@ if __name__ == "__main__":
     logging.info("Application starting...")
 
     try:
-        ft.app(target=main)
+        ft.app(target=main, assets_dir="assets")
     except Exception as e:
         # 捕获致命错误写入日志
         logging.critical(f"Critical Error: {e}")
