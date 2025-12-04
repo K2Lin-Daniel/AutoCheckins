@@ -6,7 +6,7 @@ import os
 from bs4 import BeautifulSoup
 import json
 import schedule
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 
 # 获取当前目录
@@ -43,10 +43,10 @@ if not os.path.exists(file_path):
 # 读取外部 JSON 文件中的数据
 with open(file_path, 'r') as file:
     json_data = json.load(file)
-    debug = json_data["debug"]
+    debug = json_data.get("debug", False)
 
     # 判断是否首次使用或解除配置锁定
-    if not json_data['configLock']:
+    if not json_data.get('configLock'):
         print("----------基础配置(必填)----------")
         print("☆请通过查看教程抓包获取班级ID")
         ClassID = input("请输入班级ID：")
@@ -143,95 +143,42 @@ if debug:
     printLog("info", "已启动Debug")
 print("★一切就绪，程序开始执行\\^o^/")
 
-### 请注意，下述两个自动任务功能未适配
-# GitHub Actions自动任务
-# ClassID = os.environ['ClassID']
-# X = os.environ['X']
-# Y = os.environ['Y']
-# ACC = os.environ['ACC']
-# SearchTime = os.environ['SearchTime']
-# Cookies = os.environ['Cookies']
-# token = os.environ['token']
-#scheduletime = os.environ['scheduletime']
-
-# 本地面板运行
-#ClassID = ''
-#X = ''
-#Y = ''
-#ACC = ''
-#SearchTime = 60
-#Cookies = ''
-#token = ''  #在pushplus网站中可以找到
-#scheduletime =''
-### 请注意，上述两个自动任务功能未适配
-
 # 随机经纬，用于多人签到定位偏移
 def modify_decimal_part(num):
-    num = float(num)
-    # print(num)
-    # 将浮点数转换为字符串
-    num_str = f"{num:.8f}"  # 确保有足够的小数位数
-    # 找到小数点的位置
-    decimal_index = num_str.find('.')
-    # 提取小数点后4到6位
-    decimal_part = num_str[decimal_index + 4:decimal_index + 9]
-    # 将提取的小数部分转换为整数
-    decimal_value = int(decimal_part)
-    # 生成一个在-150到150范围的随机整数
-    random_offset = random.randint(-15000, 15000)
-    # 计算新的小数部分
-    new_decimal_value = decimal_value + random_offset
-    new_decimal_value = abs(new_decimal_value)
-    # 将新的小数部分转换为字符串，并确保它有3位
-    new_decimal_str = f"{new_decimal_value:05d}"
-    # 拼接回原浮点数
-    new_num_str = num_str[:decimal_index + 4] + new_decimal_str + num_str[decimal_index + 9:]
-    # 将新的字符串转换回浮点数
-    new_num = float(new_num_str)
+    # Generates a random offset between -0.00015 and 0.00015
+    # Roughly corresponds to 15 meters
+    offset = random.uniform(-0.00015, 0.00015)
+    return float(num) + offset
 
-    return new_num
+def thisTime(hour, minute):
+    target_hour = int(hour)
+    target_minute = int(minute)
 
-def thisTime(hour,minute):
-    # 指定的小时和分钟，这里示例为21:50，你可以按需修改
-    target_hour,target_minute = hour,minute
+    now = datetime.now()
+    target_time = now.replace(hour=target_hour, minute=target_minute, second=0, microsecond=0)
 
-    # while True:
-    # 获取当前时间的时间戳
-    current_time_stamp = time.time()
-    # 获取当前时间的结构体
-    current_time_struct = time.localtime(current_time_stamp)
+    if target_time < now:
+        target_time += timedelta(days=1)
 
-    # 获取当天的日期部分，构造一个新的时间结构体，用于设置指定时间
-    today_date = time.strftime("%Y-%m-%d", current_time_struct)
-    target_time_struct = time.strptime(today_date + " " + str(target_hour) + ":" + str(target_minute) + ":00", "%Y-%m-%d %H:%M:%S")
-    target_time_stamp = time.mktime(target_time_struct)
+    remaining = target_time - now
+    remaining_seconds_main = int(remaining.total_seconds())
 
-    if target_time_stamp < current_time_stamp:
-        # 如果目标时间已经小于当前时间，说明今天的时间已经过了，那就设置为明天的同样时间
-        target_time_stamp += 24 * 3600
-
-    # 计算时间差（单位为秒）
-    remaining_seconds_main = int(target_time_stamp - current_time_stamp)
-    # 计算剩余小时数
     remaining_hours = remaining_seconds_main // 3600
-    remaining_seconds = remaining_seconds_main % 3600
-    # 计算剩余分钟数
-    remaining_minutes = remaining_seconds // 60
-    remaining_seconds %= 60
+    remaining_minutes = (remaining_seconds_main % 3600) // 60
+    remaining_seconds = remaining_seconds_main % 60
 
-    # 格式化当前时间结构体为字符串
-    current_time = time.strftime("%Y-%m-%d %H:%M", current_time_struct)
+    current_time_str = now.strftime("%Y-%m-%d %H:%M:%S")
 
     # 区分剩余时间的显示逻辑，以优化终端内容的显示阅读体验
     if remaining_seconds_main < 300:
         # 如果剩余时间小于5分钟则每秒刷新
-        print("\r当前时间：{}，距离下次任务执行{}:{} 还剩{}分钟{}秒\t\t".format(
-            current_time, target_hour, target_minute, remaining_minutes, remaining_seconds), end="")
+        print("\r当前时间：{}，距离下次任务执行{:02d}:{:02d} 还剩{}分钟{}秒\t\t".format(
+            current_time_str, target_hour, target_minute, remaining_minutes, remaining_seconds), end="")
         time.sleep(1)
     else:
         # 如果剩余时间大于5分钟则每分钟刷新
-        print("\r当前时间：{}，距离下次任务执行{}:{} 还剩{}小时{}分钟\t\t".format(
-            current_time, target_hour, target_minute, remaining_hours, remaining_minutes), end="")
+        print("\r当前时间：{}，距离下次任务执行{:02d}:{:02d} 还剩{}小时{}分钟\t\t".format(
+            current_time_str, target_hour, target_minute, remaining_hours, remaining_minutes), end="")
         time.sleep(60)
 
 def qiandao(theCookies):
@@ -266,7 +213,8 @@ def qiandao(theCookies):
         print("\r★★★★★ 用户UID：%d%s 开始签到 ★★★★★"%(uid+1,username_string))
 
         # 使用正则表达式提取目标字符串 - Cookie
-        pattern = r'remember_student_59ba36addc2b2f9401580f014c7f58ea4e30989d=[^;]+'
+        # Improved regex to be more generic for different hashes
+        pattern = r'remember_student_[0-9a-fA-F]+=[^;]+'
         result = re.search(pattern, onlyCookie)
 
         if result:
@@ -283,90 +231,105 @@ def qiandao(theCookies):
                 'Cookie': extracted_string
             }
 
-            response = requests.get(url, headers=headers)
-            print("响应:", response)
+            try:
+                response = requests.get(url, headers=headers, timeout=10)
+                print("响应:", response)
 
-            # 创建 Beautiful Soup 对象解析 HTML
-            soup = BeautifulSoup(response.text, 'html.parser')
+                # 创建 Beautiful Soup 对象解析 HTML
+                soup = BeautifulSoup(response.text, 'html.parser')
 
-            title_tag = soup.find('title')
+                title_tag = soup.find('title')
 
-            if debug:
-                print("★☆★")
-                print(soup)
-                print("===")
-                print(title_tag)
-                print("★☆★")
+                if debug:
+                    print("★☆★")
+                    print(soup)
+                    print("===")
+                    print(title_tag)
+                    print("★☆★")
 
-            if title_tag and "出错" not in title_tag.text:
-                # 使用正则表达式从 HTML 文本中提取所有 punch_gps() 中的数字
-                pattern = re.compile(r'punch_gps\((\d+)\)')
-                matches = pattern.findall(response.text)
-                print("找到GPS定位签到:", matches)
-                pattern2 = re.compile(r'punchcard_(\d+)')
-                matches2 = pattern2.findall(response.text)
-                print("找到扫码签到:", matches2)
-                matches.extend(matches2)
-                if matches:
-                    for match in matches:
-                        url1 = "http://k8n.cn/student/punchs/course/" + ClassID + "/" + match
-                        newX = modify_decimal_part(X)
-                        newY = modify_decimal_part(Y)
-                        payload = {
-                            'id': match,
-                            'lat': newX,
-                            'lng': newY,
-                            'acc': ACC,  #未知，可能是高度
-                            'res': '',  #拍照签到
-                            'gps_addr': ''  #未知，抓取时该函数为空
-                        }
+                if title_tag and "出错" not in title_tag.text:
+                    # 使用正则表达式从 HTML 文本中提取所有 punch_gps() 中的数字
+                    pattern = re.compile(r'punch_gps\((\d+)\)')
+                    matches = pattern.findall(response.text)
+                    print("找到GPS定位签到:", matches)
+                    pattern2 = re.compile(r'punchcard_(\d+)')
+                    matches2 = pattern2.findall(response.text)
+                    print("找到扫码签到:", matches2)
+                    matches.extend(matches2)
+                    if matches:
+                        for match in matches:
+                            url1 = "http://k8n.cn/student/punchs/course/" + ClassID + "/" + match
+                            newX = modify_decimal_part(X)
+                            newY = modify_decimal_part(Y)
+                            payload = {
+                                'id': match,
+                                'lat': newX,
+                                'lng': newY,
+                                'acc': ACC,  #未知，可能是高度
+                                'res': '',  #拍照签到
+                                'gps_addr': ''  #未知，抓取时该函数为空
+                            }
 
-                        response = requests.post(url1, headers=headers, data=payload)
-                        print("签到请求已发送： 签到ID[%s] 签到定位[%s,%s] 签到海拔[%s]"%(match, newX, newY, ACC))
-                        printLog("info", "用户UID[%d%s] | 签到请求已发送： 签到ID[%s] 签到定位[%s,%s] 签到海拔[%s]"%(uid+1, username_string, match, newX, newY, ACC))
+                            try:
+                                response = requests.post(url1, headers=headers, data=payload, timeout=10)
+                                print("签到请求已发送： 签到ID[%s] 签到定位[%s,%s] 签到海拔[%s]"%(match, newX, newY, ACC))
+                                printLog("info", "用户UID[%d%s] | 签到请求已发送： 签到ID[%s] 签到定位[%s,%s] 签到海拔[%s]"%(uid+1, username_string, match, newX, newY, ACC))
 
-                        if response.status_code == 200:
-                            print("请求成功，响应:", response)
+                                if response.status_code == 200:
+                                    print("请求成功，响应:", response)
 
-                            # 解析响应的 HTML 内容
-                            soup_response = BeautifulSoup(response.text, 'html.parser')
-                            # h1_tag = soup_response.find('h1')
-                            div_tag = soup_response.find('div', id='title')
+                                    # 解析响应的 HTML 内容
+                                    soup_response = BeautifulSoup(response.text, 'html.parser')
+                                    # h1_tag = soup_response.find('h1')
+                                    div_tag = soup_response.find('div', id='title')
 
-                            if debug:
-                                print("★☆★")
-                                print(soup_response)
-                                print("===")
-                                print(div_tag)
-                                print("★☆★")
+                                    if debug:
+                                        print("★☆★")
+                                        print(soup_response)
+                                        print("===")
+                                        print(div_tag)
+                                        print("★☆★")
 
-                            if div_tag:
-                                h1_text = div_tag.text
-                                print(h1_text)
-                                printLog("info", "用户UID[%d%s] | %s"%(uid+1, username_string, h1_text))
-                                # encoding:utf-8
-                                if pushtoken != "" and h1_text== "签到成功":
-                                    url = 'http://www.pushplus.plus/send?token=' + pushtoken + '&title=' + "班级魔法自动签到任务" + '&content=' + h1_text  # 不使用请注释
-                                    requests.get(url)  # 不使用请注释
-                                continue  # 返回到查找进行中的签到循环
-                            else:
-                                print("未找到 <h1> 标签，可能存在错误")
-                                printLog("info", "用户UID[%d%s] | 未找到 <h1> 标签，可能存在错误或签到成功"%(uid+1, username_string))
-                        else:
-                            print("请求失败，状态码:", response.status_code)
-                            printLog("error", "用户UID[%d%s] | 请求失败，状态码: %d"%(uid+1, username_string, response.status_code))
-                            print("将本Cookie加入重试队列")
-                            errorCookie.append(onlyCookie)
+                                    if div_tag:
+                                        h1_text = div_tag.text
+                                        print(h1_text)
+                                        printLog("info", "用户UID[%d%s] | %s"%(uid+1, username_string, h1_text))
+                                        # encoding:utf-8
+                                        if pushtoken != "" and h1_text== "签到成功":
+                                            url = 'http://www.pushplus.plus/send?token=' + pushtoken + '&title=' + "班级魔法自动签到任务" + '&content=' + h1_text  # 不使用请注释
+                                            try:
+                                                requests.get(url, timeout=10)  # 不使用请注释
+                                            except Exception as e:
+                                                print(f"推送失败: {e}")
+                                                printLog("error", f"推送失败: {e}")
+                                        continue  # 返回到查找进行中的签到循环
+                                    else:
+                                        print("未找到 <h1> 标签，可能存在错误")
+                                        printLog("info", "用户UID[%d%s] | 未找到 <h1> 标签，可能存在错误或签到成功"%(uid+1, username_string))
+                                else:
+                                    print("请求失败，状态码:", response.status_code)
+                                    printLog("error", "用户UID[%d%s] | 请求失败，状态码: %d"%(uid+1, username_string, response.status_code))
+                                    print("将本Cookie加入重试队列")
+                                    errorCookie.append(onlyCookie)
+                            except requests.RequestException as e:
+                                print(f"POST请求异常: {e}")
+                                printLog("error", f"用户UID[{uid+1}{username_string}] | POST请求异常: {e}")
+                                errorCookie.append(onlyCookie)
+                    else:
+                        print("未找到在进行的签到")
                 else:
-                    print("未找到在进行的签到")
-            else:
-                print("登录状态异常，将本Cookie加入重试队列")
-                printLog("error", "用户UID[%d%s] | 登录状态异常"%(uid+1, username_string))
+                    print("登录状态异常，将本Cookie加入重试队列")
+                    printLog("error", "用户UID[%d%s] | 登录状态异常"%(uid+1, username_string))
+                    errorCookie.append(onlyCookie)
+            except requests.RequestException as e:
+                print(f"GET请求异常: {e}")
+                printLog("error", f"用户UID[{uid+1}{username_string}] | GET请求异常: {e}")
                 errorCookie.append(onlyCookie)
         else:
             nullCookie += 1
             print("未找到匹配的字符串，检查Cookie是否错误！")
     return errorCookie, nullCookie
+
 def job():
     current_time = datetime.now()
     print("\n进入检索，当前时间为:", current_time)
