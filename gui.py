@@ -102,6 +102,7 @@ TRANSLATIONS = {
         "invalid_time": "Invalid time format. Use HH:MM.",
         "lat_lng_error": "Latitude and Longitude must be numbers.",
         "missing_fields": "Name, Class ID and Cookie are required.",
+        "guide": "Guide",
     },
     "zh": {
         "title": "班级魔方自动签到 - AutoCheckBJMF",
@@ -111,6 +112,7 @@ TRANSLATIONS = {
         "locations": "地点",
         "settings": "设置",
         "logs": "日志",
+        "guide": "使用教程",
         "run": "运行",
         "next_run": "下次计划运行",
         "initializing": "正在初始化...",
@@ -267,6 +269,11 @@ class AutoCheckApp:
                     selected_icon=ft.Icons.TERMINAL,
                     label=self.t("logs")
                 ),
+                ft.NavigationRailDestination(
+                    icon=ft.Icons.HELP_OUTLINE,
+                    selected_icon=ft.Icons.HELP,
+                    label=self.t("guide")
+                ),
             ],
             on_change=self.on_nav_change,
         )
@@ -305,6 +312,8 @@ class AutoCheckApp:
             self.build_settings()
         elif idx == 5:
             self.build_logs()
+        elif idx == 6:
+            self.build_guide()
 
         self.page.update()
 
@@ -838,6 +847,31 @@ class AutoCheckApp:
 
     def clear_logs(self, e):
         self.log_list_view.controls.clear()
+        self.page.update()
+
+    # --- Guide ---
+    def build_guide(self):
+        self.content_area.controls.extend([
+            ft.Text(self.t("guide"), size=30, weight=ft.FontWeight.BOLD),
+            ft.Divider(),
+            ft.Text(self.t("tutorial_intro"), size=16),
+            ft.Container(height=10),
+            ft.Text(self.t("tutorial_guide"), weight=ft.FontWeight.BOLD, size=18),
+            ft.Text(self.t("step_1")),
+            ft.Text(self.t("step_2")),
+            ft.Text(self.t("step_3")),
+            ft.Text(self.t("step_4")),
+            ft.Divider(),
+            ft.Container(
+                content=ft.Column([
+                    ft.Text(self.t("cookie_guide_title"), weight=ft.FontWeight.BOLD, size=18),
+                    ft.Markdown(self.t("cookie_guide_md"), selectable=True)
+                ]),
+                padding=10,
+                border=ft.border.all(1, ft.Colors.OUTLINE),
+                border_radius=10
+            )
+        ])
         self.page.update()
 
     # --- Actions & Helpers ---
