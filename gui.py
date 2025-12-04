@@ -25,7 +25,8 @@ def main(page: ft.Page):
             color = ft.colors.GREEN
 
         log_lv.controls.append(ft.Text(message, font_family="Consolas", size=12, color=color))
-        page.update()
+        log_lv.update()
+        log_lv.scroll_to(offset=-1, animate=True)
 
     checkin_manager = CheckInManager(config_manager, log_callback=log_callback)
 
@@ -37,7 +38,7 @@ def main(page: ft.Page):
 
     def run_checkin(e):
         run_btn.disabled = True
-        page.update()
+        run_btn.update()
         threading.Thread(target=run_checkin_thread).start()
 
     def run_checkin_thread():
@@ -49,7 +50,7 @@ def main(page: ft.Page):
             log_callback(f"Critical Error: {ex}")
 
         run_btn.disabled = False
-        page.update()
+        run_btn.update()
 
     run_btn = ft.FloatingActionButton(text="Run Now", on_click=run_checkin, icon=ft.icons.PLAY_ARROW)
 
@@ -89,7 +90,7 @@ def main(page: ft.Page):
                 padding=10,
                 bgcolor=ft.colors.with_opacity(0.3, ft.colors.SURFACE_VARIANT)
             )
-        ]),
+        ], expand=True),
         padding=20,
         expand=True
     )
@@ -198,7 +199,8 @@ def main(page: ft.Page):
             ft.Divider(),
             accounts_column
         ], expand=True),
-        padding=20
+        padding=20,
+        expand=True
     )
 
     # ==========================
@@ -303,7 +305,8 @@ def main(page: ft.Page):
             ft.Divider(),
             locations_column
         ], expand=True),
-        padding=20
+        padding=20,
+        expand=True
     )
 
     # ==========================
@@ -406,7 +409,8 @@ def main(page: ft.Page):
             ft.Divider(),
             tasks_column
         ], expand=True),
-        padding=20
+        padding=20,
+        expand=True
     )
 
     # ==========================
@@ -458,8 +462,9 @@ def main(page: ft.Page):
             st_debug_mode,
             ft.Container(height=20),
             ft.FilledButton("Save Global Settings", icon=ft.icons.SAVE, on_click=save_global_settings)
-        ], scroll=ft.ScrollMode.AUTO),
-        padding=20
+        ], scroll=ft.ScrollMode.AUTO, expand=True),
+        padding=20,
+        expand=True
     )
 
     # ==========================
@@ -506,12 +511,13 @@ def main(page: ft.Page):
                     hours, remainder = divmod(diff.seconds, 3600)
                     minutes, seconds = divmod(remainder, 60)
                     countdown_text.value = f"Next run in: {hours:02d}:{minutes:02d}:{seconds:02d}"
-                    page.update()
+                    countdown_text.update()
                 except:
                     countdown_text.value = ""
+                    countdown_text.update()
             else:
                 countdown_text.value = ""
-                page.update()
+                countdown_text.update()
 
             time.sleep(1)
 
@@ -520,7 +526,6 @@ def main(page: ft.Page):
     refresh_locations_list()
     refresh_tasks_list()
     update_schedule_task()
-    threading.Thread(target=scheduler_loop, daemon=True).start()
 
     # --- Main Navigation ---
     tabs = ft.Tabs(
@@ -538,5 +543,8 @@ def main(page: ft.Page):
 
     page.add(tabs)
     page.floating_action_button = run_btn
+
+    # Start scheduler after UI is built
+    threading.Thread(target=scheduler_loop, daemon=True).start()
 
 ft.app(target=main)
