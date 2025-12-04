@@ -88,13 +88,19 @@ class ConfigManager:
                 # Running as script
                 base_dir = os.path.dirname(os.path.abspath(__file__))
 
-            self.config_path = os.path.join(base_dir, "config.json")
+            config_dir = os.path.join(base_dir, "config")
+            if not os.path.exists(config_dir):
+                os.makedirs(config_dir)
+
+            self.config_path = os.path.join(config_dir, "config.json")
 
         self.data = self._load_config()
 
-        # Check if config file exists, if not, save defaults
-        if not os.path.exists(self.config_path):
-            self.save_config(self.data)
+        # Always save config to ensure defaults are present (e.g. scheduletime)
+        # Check existence before saving for logging purposes
+        is_new = not os.path.exists(self.config_path)
+        self.save_config(self.data)
+        if is_new:
             logger.info(f"Initialized default configuration at {self.config_path}")
 
     def _load_config(self):
